@@ -1,9 +1,28 @@
-# 前言
+# 高并发票务预约与订单系统（改造中）
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Java CI with Maven](https://github.com/techa03/goodsKill/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/techa03/goodsKill/actions/workflows/maven.yml)
-[![codecov](https://codecov.io/gh/techa03/goodsKill/branch/main/graph/badge.svg)](https://codecov.io/gh/techa03/goodsKill)
-[![CodeQL](https://github.com/techa03/goodsKill/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/techa03/goodsKill/actions/workflows/codeql.yml)
+[![Java CI with Maven](https://github.com/jjjs-mm/goodsKill/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/jjjs-mm/goodsKill/actions/workflows/maven.yml)
+[![codecov](https://codecov.io/gh/jjjs-mm/goodsKill/branch/main/graph/badge.svg)](https://codecov.io/gh/jjjs-mm/goodsKill)
+[![CodeQL](https://github.com/jjjs-mm/goodsKill/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/jjjs-mm/goodsKill/actions/workflows/codeql.yml)
+
+> 本仓库基于 [techa03/goodsKill](https://github.com/techa03/goodsKill)
+> 进行二次开发，保留原项目 MIT 许可证及作者信息。当前阶段将原有秒杀技术实验场重构为一套可部署、可压测、可观测的票务交易系统。
+
+## 当前改造目标
+
+第一阶段聚焦后端交易主链路，不引入 AI 功能：
+
+- 票务活动、场次、库存与订单领域模型
+- Redis Lua 原子预扣库存与一人一单
+- RabbitMQ 异步下单、幂等消费、重试与死信队列
+- 超时取消、库存回补与最终一致性补偿
+- 可复现的压测报告及 OpenTelemetry 可观测性
+
+默认构建只包含网关、认证、秒杀、订单、Web 和公共模块。AI、Seata、ElasticJob、Admin 等实验模块仍保留在仓库中，但不进入默认 Maven reactor。
+
+本地开发请先阅读 [`docs/local-development.md`](docs/local-development.md)。
+
+## 原项目说明
 
 项目命名为 **goodsKill** 一方面有商品秒杀的意思(好像有点chinglish的味道)，另外也可理解为 **good skill**，本项目就是希望搭建一套完整的项目框架，把一些好的技术和开发技巧整合进来（偏向于后端技术），方便学习和查阅。另外需要注意的是，实际项目中并不是使用越多技术栈越好，过多的技术栈引入会带来额外的维护成本以及使用成本。
 
@@ -120,18 +139,18 @@ ns         %     Task name
 
 | 镜像 | 版本 | 端口         | 用户名密码 |
 |---|---|------------|---|
-| Nacos | 3.2.1 | 18080      | nacos:nacos（控制台） |
-| Redis | latest | 6379       | 密码:123456 |
+| Nacos | 3.2.1 | 18080      | 由 `.env` 配置 |
+| Redis | latest | 6379       | 由 `.env` 配置 |
 | Kafka | 3.9.1 | 9092       | 无 |
 | Kafbat UI | latest | 38080:8080 | 无 |
 | Mongo | 6.0.7 | 27017      | 无 |
-| MySQL | 8.0.29 | 3306       | root:Password123 |
+| MySQL | 8.0.29 | 3306       | 由 `.env` 配置 |
 | Zookeeper | 3.6.2 | 2181       | 无 |
 | Elasticsearch | 9.2.2 | 9200 9300  | 无 |
 | Kibana | 9.2.2 | 5601       | 无 |
-| RabbitMQ | latest | 5672 15672 | 无 |
-| PostgreSQL | pgvector/pgvector:pg15 | 5432       | goodskill:Password123 |
-| MinIO | latest | 9000       | root:password |
+| RabbitMQ | latest | 5672 15672 | 由 `.env` 配置 |
+| PostgreSQL | pgvector/pgvector:pg15 | 5432       | 由 `.env` 配置 |
+| MinIO | latest | 9000       | 由 `.env` 配置 |
 | Seata | 2.0.0 | 7091 8091  | seata:seata（控制台） |
 | Grafana OTel LGTM | latest | 3000 (Grafana UI) / 4317 (OTLP gRPC) / 4318 (OTLP HTTP) | admin:admin（Grafana 控制台） |
 
@@ -146,13 +165,17 @@ ns         %     Task name
   mvn clean install -DskipTests
 ```
 
-* 默认端口启动nacos、redis、mysql、rabbitmq、kafka、zookeeper、elasticsearch、seataServer，或者使用docker-compose[^2]命令：
+* 复制本地环境变量模板并启动最小核心依赖：
 
 ```bash
-  docker-compose up -d
+cp .env.example .env
+docker compose --env-file .env -f compose-core.yml up -d
 ```
 
 [^2]: 需要安装docker-desktop https://www.docker.com/products/docker-desktop/
+
+可观测与实验组件不再默认启动。需要时按照
+[`docs/local-development.md`](docs/local-development.md) 组合对应的 Compose 文件。
 
 * 进入`goodskill-web/src/main/sql`目录，找到`seckill.sql`文件，在本地mysql数据库中建立`seckill`仓库并执行完成数据初始化操作
 

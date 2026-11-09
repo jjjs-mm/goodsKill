@@ -1,0 +1,93 @@
+services:
+  mysql:
+    image: mysql:8.0.29
+    container_name: goodskill-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --lower-case-table-names=1
+    volumes:
+      - ./goodskill-web/src/main/sql:/docker-entrypoint-initdb.d:ro
+      - mysql-data:/var/lib/mysql
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-seckill}
+      MYSQL_USER: ${MYSQL_USER:-seckill}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [goodskill-network]
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: goodskill-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+      TZ: ${TZ:-Asia/Shanghai}
+    networks: [goodskill-network]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: goodskill-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [goodskill-network]
+
+  nacos:
+    build:
+      context: ./doc/docker/nacos
+    container_name: goodskill-nacos
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      PREFER_HOST_MODE: hostname
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?set NACOS_AUTH_TOKEN in .env}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-nacos}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?set NACOS_AUTH_IDENTITY_VALUE in .env}
+    volumes:
+      - ./doc/docker/nacos/standalone-logs:/home/nacos/standalone-logs
+      - ./doc/docker/nacos/init.d/custom.properties:/home/nacos/init.d/custom.properties:ro
+      - ./doc/docker/nacos/conf/application.properties:/home/nacos/conf/application.properties:ro
+    networks: [goodskill-network]
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  goodskill-network:
+    driver: bridge

@@ -9,9 +9,9 @@ spring:
     name: goodskill-common
   cloud:
     nacos:
-      username: nacos
-      password: nacos
-      server-addr: nacos:8848
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      server-addr: ${NACOS_SERVER_ADDR:nacos:8848}
   config:
     import:
       - optional:nacos:goodskill-common-connection.yml
@@ -24,7 +24,7 @@ dubbo:
     name: tri
     port: -1
   registry:
-    address: zookeeper://zookeeper:2181
+    address: ${DUBBO_REGISTRY_ADDRESS:zookeeper://zookeeper:2181}
   scan:
     base-packages: com.goodskill.common.service.dubbo
   application:
@@ -44,16 +44,16 @@ seata:
     type: nacos
     nacos:
       namespace:
-      serverAddr: nacos:8848
+      serverAddr: ${NACOS_SERVER_ADDR:nacos:8848}
       group: SEATA_GROUP
-      username: "nacos"
-      password: "nacos"
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
   registry:
     type: nacos
     nacos:
       application: seata-server
-      server-addr: nacos:8848
+      server-addr: ${NACOS_SERVER_ADDR:nacos:8848}
       group: SEATA_GROUP
       namespace:
-      username: "nacos"
-      password: "nacos"
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}

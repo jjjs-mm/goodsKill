@@ -13,14 +13,24 @@
         <module>goodskill-common</module>
         <module>goodskill-order-provider</module>
         <module>goodskill-spring-boot-starter</module>
-        <module>goodskill-job</module>
         <module>goodskill-gateway</module>
-        <module>goodskill-seata</module>
         <module>goodskill-auth</module>
-        <module>goodskill-admin</module>
-<!--        <module>goodskill-chat-provider</module>-->
-        <module>goodskill-ai</module>
-        <!--        <module>goodskill-canal</module>-->
+
+        <!--
+          Optional/experimental modules are intentionally excluded from the
+          default reactor. They remain in the repository and can be built
+          explicitly with `mvn -f <module>/pom.xml ...` when needed.
+
+          goodskill-job currently has no Spring Boot 4 compatible ElasticJob
+          release. The AI, Seata and admin modules are not required by the
+          ticketing transaction baseline.
+        -->
+        <!-- <module>goodskill-job</module> -->
+        <!-- <module>goodskill-seata</module> -->
+        <!-- <module>goodskill-admin</module> -->
+        <!-- <module>goodskill-ai</module> -->
+        <!-- <module>goodskill-chat-provider</module> -->
+        <!-- <module>goodskill-canal</module> -->
     </modules>
 
     <properties>

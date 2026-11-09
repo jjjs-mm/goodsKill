@@ -1,0 +1,35 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: goodskill-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-otlp-receiver
+    volumes:
+      - ./doc/docker/nacos/prometheus/prometheus-standalone.yaml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks: [goodskill-network]
+
+  grafana-lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: goodskill-lgtm
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - lgtm-data:/data
+    networks: [goodskill-network]
+
+volumes:
+  prometheus-data:
+  lgtm-data:
+
+networks:
+  goodskill-network:
+    driver: bridge

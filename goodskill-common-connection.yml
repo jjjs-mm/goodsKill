@@ -1,36 +1,36 @@
 spring:
   rabbitmq:
-    host: rabbitmq
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
   elasticsearch:
-    uris: http://elasticsearch:9200
+    uris: ${ELASTICSEARCH_URIS:http://elasticsearch:9200}
   data:
     redis:
-      port: 6379
-      host: redis
-      password: 123456
+      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST:redis}
+      password: ${REDIS_PASSWORD:change-me}
     sentinel:
       transport:
         port: 8719
         ## 默认端口8080，已改为自定义18088端口，通过http://127.0.0.1:18088/#/dashboard访问
         dashboard: localhost:18088
   mongodb:
-    host: mongo
-    port: 27017
+    host: ${MONGODB_HOST:mongo}
+    port: ${MONGODB_PORT:27017}
 
 dubbo:
   registry:
-    address: zookeeper://zookeeper:2181
+    address: ${DUBBO_REGISTRY_ADDRESS:zookeeper://zookeeper:2181}
 
-zookeeper_ip: zookeeper:2181
+zookeeper_ip: ${ZOOKEEPER_ADDRESS:zookeeper:2181}
 
 ## oss配置
 minio:
-  endpoint: http://minio:19000
-  accessKey: 9U3G8higct0CRdRRubkj
-  secretKey: b5U3y8WqvgQXt92PKHRyVIGPizGQltto88wNus2A
-  bucketName: test
+  endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+  accessKey: ${MINIO_ROOT_USER:minioadmin}
+  secretKey: ${MINIO_ROOT_PASSWORD:change-me}
+  bucketName: ${MINIO_BUCKET_NAME:test}

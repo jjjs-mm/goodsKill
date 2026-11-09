@@ -36,9 +36,9 @@ spring:
             data-type: json
             group-id: DEFAULT_GROUP
             rule-type: flow
-            server-addr: nacos:8848
-            username: nacos
-            password: nacos
+            server-addr: ${NACOS_SERVER_ADDR:nacos:8848}
+            username: ${NACOS_USERNAME:nacos}
+            password: ${NACOS_PASSWORD:nacos}
 
 mybatis-plus:
   global-config:
@@ -58,17 +58,17 @@ management:
   otlp:
     metrics:
       export:
-        url: http://localhost:9090/api/v1/otlp/v1/metrics
+        url: ${OTEL_METRICS_ENDPOINT:http://localhost:9090/api/v1/otlp/v1/metrics}
         step: 30s
   opentelemetry:
     tracing:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/traces
+          endpoint: ${OTEL_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
     logging:
       export:
         otlp:
-          endpoint: http://localhost:4318/v1/logs
+          endpoint: ${OTEL_LOGS_ENDPOINT:http://localhost:4318/v1/logs}
 
 ############## Sa-Token 配置 (文档: https://sa-token.cc) ##############
 sa-token:

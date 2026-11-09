@@ -1,5 +1,5 @@
-version: "3"
-
+# Legacy full-stack definition kept for upstream compatibility.
+# Prefer compose-core.yml and opt in to the observability/experimental files.
 services:
   rabbitmq-management:
     image: rabbitmq:3-management
@@ -8,6 +8,9 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD in .env}
     networks:
       - somenetwork
 
@@ -17,9 +20,9 @@ services:
       - PREFER_HOST_MODE=hostname
       - MODE=standalone
       - NACOS_AUTH_ENABLE=true
-      - NACOS_AUTH_TOKEN=MTIzNDU2Nzg5MGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6MQ==
-      - NACOS_AUTH_IDENTITY_KEY=nacos
-      - NACOS_AUTH_IDENTITY_VALUE=nacos
+      - NACOS_AUTH_TOKEN=${NACOS_AUTH_TOKEN:?set NACOS_AUTH_TOKEN in .env}
+      - NACOS_AUTH_IDENTITY_KEY=${NACOS_AUTH_IDENTITY_KEY:-nacos}
+      - NACOS_AUTH_IDENTITY_VALUE=${NACOS_AUTH_IDENTITY_VALUE:?set NACOS_AUTH_IDENTITY_VALUE in .env}
     volumes:
       - ./doc/docker/nacos/standalone-logs/:/home/nacos/standalone-logs
       - ./doc/docker/nacos/init.d/custom.properties:/home/nacos/init.d/custom.properties
@@ -124,7 +127,7 @@ services:
       - "6379:6379"
     networks:
       - somenetwork
-    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "123456" ]
+    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}" ]
 
   redisinsight:
     image: redislabs/redisinsight:latest
@@ -193,10 +196,10 @@ services:
     volumes:
       - ./goodskill-web/src/main/sql:/docker-entrypoint-initdb.d/
     environment:
-      MYSQL_ROOT_PASSWORD: "Password123"
-      MYSQL_DATABASE: "seckill"
-      MYSQL_USER: "seckill"
-      MYSQL_PASSWORD: "Password123"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-seckill}
+      MYSQL_USER: ${MYSQL_USER:-seckill}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     networks:
       - somenetwork
 
@@ -216,9 +219,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: vector_db
-      POSTGRES_USER: goodskill
-      POSTGRES_PASSWORD: Password123
+      POSTGRES_DB: ${POSTGRES_DB:-vector_db}
+      POSTGRES_USER: ${POSTGRES_USER:-goodskill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - ./doc/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
@@ -234,7 +237,7 @@ services:
     environment:
       # 注册到nacos上的ip。客户端将通过该ip访问seata服务。
       # 注意公网ip和内网ip的差异。
-      - SEATA_IP=192.168.0.100
+      - SEATA_IP=${SEATA_IP:-127.0.0.1}
       - SEATA_PORT=8091
     #      - STORE_MODE=db
     #      - SEATA_CONFIG_NAME=file:/root/seata-config/registry.conf
@@ -252,8 +255,8 @@ services:
     volumes:
       - ./doc/docker/minio_data:/data
     environment:
-      - MINIO_ROOT_USER=root
-      - MINIO_ROOT_PASSWORD=password
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
     networks:
       - somenetwork
 

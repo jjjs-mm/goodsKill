@@ -1,0 +1,128 @@
+services:
+  zookeeper:
+    image: zookeeper:3.9
+    container_name: goodskill-zookeeper
+    restart: unless-stopped
+    ports: ["2181:2181"]
+    networks: [goodskill-network]
+
+  kafka:
+    image: apache/kafka:3.9.1
+    container_name: goodskill-kafka
+    hostname: kafka
+    restart: unless-stopped
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: CONTROLLER://:29093,PLAINTEXT://:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks: [goodskill-network]
+
+  kafbat-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    container_name: goodskill-kafbat-ui
+    ports: ["38080:8080"]
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local-dev
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on: [kafka]
+    networks: [goodskill-network]
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: goodskill-redisinsight
+    restart: unless-stopped
+    ports: ["8001:5540"]
+    networks: [goodskill-network]
+
+  elasticsearch:
+    image: elasticsearch:9.2.2
+    container_name: goodskill-elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      xpack.security.enabled: "false"
+    ports: ["9200:9200", "9300:9300"]
+    networks: [goodskill-network]
+
+  kibana:
+    image: kibana:9.2.2
+    container_name: goodskill-kibana
+    depends_on: [elasticsearch]
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports: ["5601:5601"]
+    networks: [goodskill-network]
+
+  logstash:
+    image: logstash:9.2.2
+    container_name: goodskill-logstash
+    depends_on: [elasticsearch]
+    volumes:
+      - ./doc/docker/logstash/logstash-springboot.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports: ["4560:4560"]
+    networks: [goodskill-network]
+
+  mongo:
+    image: mongo:6.0.7
+    container_name: goodskill-mongo
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes:
+      - mongo-data:/data/db
+    networks: [goodskill-network]
+
+  postgres-ai:
+    image: pgvector/pgvector:pg15
+    container_name: goodskill-postgres-ai
+    restart: unless-stopped
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vector_db}
+      POSTGRES_USER: ${POSTGRES_USER:-goodskill}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./doc/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    networks: [goodskill-network]
+
+  seata-server:
+    image: seataio/seata-server:2.0.0
+    container_name: goodskill-seata
+    ports: ["8091:8091", "7091:7091"]
+    environment:
+      SEATA_IP: ${SEATA_IP:-127.0.0.1}
+      SEATA_PORT: 8091
+    volumes:
+      - ./doc/docker/seata/resources/application.yml:/seata-server/resources/application.yml:ro
+    networks: [goodskill-network]
+
+  minio:
+    image: bitnami/minio:latest
+    container_name: goodskill-minio
+    ports: ["19000:9000", "19001:9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - minio-data:/data
+    networks: [goodskill-network]
+
+volumes:
+  mongo-data:
+  postgres-data:
+  minio-data:
+
+networks:
+  goodskill-network:
+    driver: bridge
