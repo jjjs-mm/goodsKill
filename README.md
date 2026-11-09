@@ -21,6 +21,16 @@
 默认构建只包含网关、认证、秒杀、订单、Web 和公共模块。AI、Seata、ElasticJob、Admin 等实验模块仍保留在仓库中，但不进入默认 Maven reactor。
 
 本地开发请先阅读 [`docs/local-development.md`](docs/local-development.md)。
+核心交易链路及接口说明见 [`docs/ticketing-flow.md`](docs/ticketing-flow.md)。
+
+## 已实现的票务交易链路
+
+- MySQL `seckill` 数据映射为票务场次，Redis 首次预约时懒加载库存
+- Lua 在一次原子操作中完成库存校验、扣减和一人一单标记
+- RabbitMQ 异步创建 MongoDB 订单，`reservationId` 唯一索引保证幂等
+- TTL + DLX 延迟队列触发未支付订单的原子取消
+- 补偿消息调用 Lua 幂等回补库存，并释放用户预约资格
+- 下单消费失败最多重试 3 次，最终进入死信队列
 
 ## 原项目说明
 

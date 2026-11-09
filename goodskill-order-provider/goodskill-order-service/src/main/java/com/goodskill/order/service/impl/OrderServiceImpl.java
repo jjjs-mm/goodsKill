@@ -3,6 +3,9 @@ package com.goodskill.order.service.impl;
 import cn.hutool.core.util.IdUtil;
 import com.goodskill.core.pojo.dto.OrderDTO;
 import com.goodskill.order.entity.Order;
+import com.goodskill.order.enums.OrderStatusEnum;
+import com.goodskill.order.messaging.TicketInventoryReleaseEvent;
+import com.goodskill.order.messaging.TicketOrderCreateCommand;
 import com.goodskill.order.repository.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +13,9 @@ import org.springframework.data.domain.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,6 +59,63 @@ public class OrderServiceImpl {
         return order.getId();
     }
 
+    /**
+     * Creates an order once for a Redis reservation. Mongo's unique index on
+     * reservationId closes the race between duplicated RabbitMQ deliveries.
+     */
+    public Order createTicketOrder(TicketOrderCreateCommand command) {
+        Optional<Order> existing = orderRepository.findByReservationId(command.getReservationId());
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+
+        Order order = Order.builder()
+                .id(IdUtil.getSnowflake().nextIdStr())
+                .reservationId(command.getReservationId())
+                .seckillId(command.getSessionId())
+                .quantity(command.getQuantity())
+                .userId(command.getUserId())
+                .userPhone(command.getUserPhone())
+                .goodsName(command.getSessionName())
+                .seckillPrice(command.getUnitPrice() == null ? null : command.getUnitPrice().doubleValue())
+                .status(OrderStatusEnum.PENDING_PAYMENT.getCode())
+                .stateDesc(OrderStatusEnum.PENDING_PAYMENT.getDesc())
+                .createTime(command.getReservedAt())
+                .expiresAt(command.getExpiresAt())
+                .build();
+        try {
+            return orderRepository.insert(order);
+        } catch (DuplicateKeyException duplicateDelivery) {
+            return orderRepository.findByReservationId(command.getReservationId()).orElseThrow(() -> duplicateDelivery);
+        }
+    }
+
+    /**
+     * Atomically cancels only an expired, still-unpaid order. A concurrent
+     * payment changing the status to PAID wins and prevents compensation.
+     */
+    public Optional<TicketInventoryReleaseEvent> expirePendingOrder(String reservationId, LocalDateTime now) {
+        Query query = Query.query(Criteria.where("reservationId").is(reservationId)
+                .and("status").is(OrderStatusEnum.PENDING_PAYMENT.getCode())
+                .and("expiresAt").lte(now));
+        Update update = new Update()
+                .set("status", OrderStatusEnum.CANCELLED.getCode())
+                .set("stateDesc", "支付超时，订单已取消")
+                .set("cancellationReason", "PAYMENT_TIMEOUT");
+        Order cancelled = mongoTemplate.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), Order.class);
+        if (cancelled == null) {
+            return Optional.empty();
+        }
+        return Optional.of(TicketInventoryReleaseEvent.builder()
+                .reservationId(cancelled.getReservationId())
+                .sessionId(cancelled.getSeckillId())
+                .userId(cancelled.getUserId())
+                .quantity(cancelled.getQuantity())
+                .reason("PAYMENT_TIMEOUT")
+                .build());
+    }
+
     public Long count(long seckillId) {
         return orderRepository.countBySeckillId(seckillId);
     }
@@ -72,28 +135,37 @@ public class OrderServiceImpl {
     }
 
     public boolean updateOrderStatus(String orderId, Byte status, String stateDesc, String alipayTradeNo, String timestamp) {
-        Optional<Order> optionalOrder = orderRepository.findById(orderId);
-        if (optionalOrder.isPresent()) {
-            Order order = optionalOrder.get();
-            order.setStatus(status);
-            order.setStateDesc(stateDesc);
-            if (alipayTradeNo != null) {
-                order.setAlipayTradeNo(alipayTradeNo);
-            }
-            // timestamp时间转成LocalDateTime 2017-06-10 11:23:43
-            LocalDateTime tradeTime = null;
-            if (timestamp != null && !timestamp.isEmpty()) {
-                tradeTime = LocalDateTime.parse(timestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            }
-            order.setPayCompleteTime(tradeTime);
-            orderRepository.save(order);
+        Criteria criteria = Criteria.where("id").is(orderId);
+        if (OrderStatusEnum.PAID.getCode().equals(status)) {
+            criteria.and("status").is(OrderStatusEnum.PENDING_PAYMENT.getCode());
+        }
+        Update update = new Update().set("status", status).set("stateDesc", stateDesc);
+        if (alipayTradeNo != null) {
+            update.set("alipayTradeNo", alipayTradeNo);
+        }
+        if (timestamp != null && !timestamp.isEmpty()) {
+            update.set("payCompleteTime",
+                    LocalDateTime.parse(timestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        } else if (OrderStatusEnum.PAID.getCode().equals(status)) {
+            update.set("payCompleteTime", LocalDateTime.now());
+        }
+        Order updated = mongoTemplate.findAndModify(Query.query(criteria), update,
+                FindAndModifyOptions.options().returnNew(true), Order.class);
+        if (updated != null) {
             log.info("更新订单状态成功: orderId={}, status={}, stateDesc={}, alipayTradeNo={}",
                     orderId, status, stateDesc, alipayTradeNo);
             return true;
-        } else {
-            log.warn("更新订单状态失败: 订单不存在, orderId={}", orderId);
-            return false;
         }
+        log.warn("更新订单状态失败: 订单不存在或状态已变更, orderId={}", orderId);
+        return false;
+    }
+
+    public Order findByReservationId(String reservationId) {
+        return orderRepository.findByReservationId(reservationId).orElse(null);
+    }
+
+    public Order findByReservationId(String reservationId, String userId) {
+        return orderRepository.findByReservationIdAndUserId(reservationId, userId).orElse(null);
     }
 
     public Page<Order> adminList(int page, int size, String orderId, Long seckillId, String userPhone, Long userId, Integer status, String startTime, String endTime) {

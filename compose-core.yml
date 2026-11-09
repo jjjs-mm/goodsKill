@@ -62,6 +62,16 @@ services:
       retries: 10
     networks: [goodskill-network]
 
+  mongo:
+    image: mongo:6.0.7
+    container_name: goodskill-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks: [goodskill-network]
+
   nacos:
     build:
       context: ./doc/docker/nacos
@@ -87,6 +97,7 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  mongo-data:
 
 networks:
   goodskill-network:

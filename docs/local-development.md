@@ -40,8 +40,9 @@ docker compose --env-file .env -f compose-core.yml up -d
 docker compose --env-file .env -f compose-core.yml ps
 ```
 
-The core stack contains MySQL, Redis, RabbitMQ and Nacos. MySQL automatically
-loads SQL files from `goodskill-web/src/main/sql` on first startup.
+The core stack contains MySQL, Redis, RabbitMQ, MongoDB and Nacos. MySQL
+automatically loads SQL files from `goodskill-web/src/main/sql` on first
+startup; MongoDB stores the asynchronously created ticket orders.
 
 Optional observability:
 

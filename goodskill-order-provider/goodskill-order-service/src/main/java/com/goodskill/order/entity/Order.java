@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -20,9 +21,17 @@ public class Order {
     private String id;
 
     /**
+     * Redis reservation id. It is the idempotency key of asynchronous order creation.
+     */
+    @Indexed(unique = true, sparse = true)
+    private String reservationId;
+
+    /**
      * 秒杀活动id
      */
     private Long seckillId;
+
+    private Integer quantity;
 
     /**
      * 用户手机号
@@ -35,6 +44,8 @@ public class Order {
     private Byte status;
 
     private LocalDateTime createTime;
+
+    private LocalDateTime expiresAt;
 
     /**
      * 服务器ip
@@ -85,5 +96,7 @@ public class Order {
      * 支付完成时间
      */
     private LocalDateTime payCompleteTime;
+
+    private String cancellationReason;
 
 }

@@ -29,6 +29,16 @@ spring:
           destination: seckill-order-save
   mongodb:
     auto-index-creation: true
+  rabbitmq:
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+          multiplier: 2
+          max-interval: 2s
 
 
 logging:

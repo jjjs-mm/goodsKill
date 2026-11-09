@@ -30,6 +30,13 @@ spring:
         singleServerConfig:
           password: ${REDIS_PASSWORD:change-me}
           address: "redis://${REDIS_HOST:redis}:${REDIS_PORT:6379}"
+  rabbitmq:
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
   flyway:
     enabled: false
     baseline-on-migrate: true
@@ -94,6 +101,12 @@ spring:
   threads:
     virtual:
       enabled: true
+
+ticket:
+  order:
+    timeout: ${TICKET_ORDER_TIMEOUT:15m}
+  reservation:
+    retention: ${TICKET_RESERVATION_RETENTION:1h}
 
 dubbo:
   scan:

@@ -8,7 +8,9 @@ import com.goodskill.order.service.impl.OrderServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +55,15 @@ public class OrderController {
     @GetMapping("/detail/{orderId}")
     public Order detail(@PathVariable String orderId) {
         return orderService.findById(orderId);
+    }
+
+    @GetMapping("/api/orders/by-reservation/{reservationId}")
+    public Order byReservation(@PathVariable String reservationId) {
+        String userId = UserInfoUtil.getUserId();
+        if (userId == null || userId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "缺少登录用户信息");
+        }
+        return orderService.findByReservationId(reservationId, userId);
     }
 
     @PostMapping("/cancel/{orderId}")

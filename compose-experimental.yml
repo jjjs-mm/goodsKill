@@ -73,15 +73,6 @@ services:
     ports: ["4560:4560"]
     networks: [goodskill-network]
 
-  mongo:
-    image: mongo:6.0.7
-    container_name: goodskill-mongo
-    restart: unless-stopped
-    ports: ["27017:27017"]
-    volumes:
-      - mongo-data:/data/db
-    networks: [goodskill-network]
-
   postgres-ai:
     image: pgvector/pgvector:pg15
     container_name: goodskill-postgres-ai
@@ -119,7 +110,6 @@ services:
     networks: [goodskill-network]
 
 volumes:
-  mongo-data:
   postgres-data:
   minio-data:
 
