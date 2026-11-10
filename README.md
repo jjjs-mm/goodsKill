@@ -22,6 +22,7 @@
 
 本地开发请先阅读 [`docs/local-development.md`](docs/local-development.md)。
 核心交易链路及接口说明见 [`docs/ticketing-flow.md`](docs/ticketing-flow.md)。
+本地实测数据与复现命令见 [`docs/performance-report.md`](docs/performance-report.md)。
 
 ## 已实现的票务交易链路
 
@@ -31,6 +32,13 @@
 - TTL + DLX 延迟队列触发未支付订单的原子取消
 - 补偿消息调用 Lua 幂等回补库存，并释放用户预约资格
 - 下单消费失败最多重试 3 次，最终进入死信队列
+
+## 可复现验证基线
+
+- 一键启动与 E2E 脚本真实验证 `HTTP 202 → 异步订单 → 超时取消 → 库存回补`
+- Testcontainers 2.x 隔离启动 MySQL、Redis、RabbitMQ、MongoDB，验证跨组件一致性
+- k6 本地基线：100 RPS 持续 30 秒，3,001 次请求零失败，p95 7.49 ms
+- 压测结束后 3,001 个订单全部完成超时取消，Redis 库存无漂移，MQ 无积压
 
 ## 原项目说明
 

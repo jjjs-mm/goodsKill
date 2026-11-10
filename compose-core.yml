@@ -88,6 +88,14 @@ services:
       NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?set NACOS_AUTH_TOKEN in .env}
       NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:-nacos}
       NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?set NACOS_AUTH_IDENTITY_VALUE in .env}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: gs_config
+      MYSQL_USERNAME: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
     volumes:
       - ./doc/docker/nacos/standalone-logs:/home/nacos/standalone-logs
       - ./doc/docker/nacos/init.d/custom.properties:/home/nacos/init.d/custom.properties:ro

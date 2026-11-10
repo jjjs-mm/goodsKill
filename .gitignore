@@ -23,6 +23,8 @@
 **/target/*
 /standalone-logs/
 *.sh
+!/scripts/start-ticketing-services.sh
+!/scripts/verify-ticketing-e2e.sh
 /goodskill-chat-ui/.gitignore
 /goodskill-seckill-provider/goodskill-api/goodskill-api.iml
 /goodskill-common/goodskill-common-api/goodskill-common-api.iml

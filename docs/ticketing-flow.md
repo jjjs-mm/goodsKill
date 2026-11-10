@@ -37,8 +37,20 @@ source .env
 set +a
 ```
 
-For a quick timeout demonstration, set `TICKET_ORDER_TIMEOUT=30s`, then start
-`goodskill-service` and `goodskill-order-service` from the IDE.
+Build and start the two focused services. The ticketing entry point avoids
+booting unrelated legacy Elasticsearch, Kafka and Dubbo components:
+
+```bash
+mvn -pl goodskill-seckill-provider/goodskill-service,goodskill-order-provider/goodskill-order-service \
+  -am package -DskipTests
+TICKET_ORDER_TIMEOUT=5s scripts/start-ticketing-services.sh
+```
+
+In a second terminal, run the repeatable HTTP verification:
+
+```bash
+scripts/verify-ticketing-e2e.sh
+```
 
 Inspect a session:
 
@@ -74,3 +86,18 @@ The seckill service currently uses port `54870`; the order service uses
 The marker is retained longer than the payment timeout so that a delayed
 compensation can still execute safely. Both reservation and release operations
 are Lua scripts and therefore atomic inside Redis.
+
+## Integration and load tests
+
+The opt-in Testcontainers module starts isolated MySQL, Redis, RabbitMQ and
+MongoDB containers and verifies reservation, duplicate prevention, message
+routing, TTL dead-lettering, unique order keys, cancellation and idempotent
+inventory release:
+
+```bash
+TESTCONTAINERS_RYUK_DISABLED=true mvn -Pintegration-tests \
+  -pl goodskill-integration-tests -am verify
+```
+
+See [performance-report.md](performance-report.md) for the measured k6 baseline
+and `load-tests/ticket-reservation.js` for the reproducible workload.

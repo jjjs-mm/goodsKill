@@ -57,6 +57,7 @@
         <spring-boot-admin.version>4.0.4</spring-boot-admin.version>
         <netty.version>4.1.100.Final</netty.version>
         <flatten-maven-plugin.version>1.6.0</flatten-maven-plugin.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
     </properties>
 
     <build>
@@ -353,5 +354,14 @@
             <version>${netty.version}</version>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>goodskill-integration-tests</module>
+            </modules>
+        </profile>
+    </profiles>
 
 </project>
