@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -122,9 +123,21 @@ public class TicketInventoryService {
 
     public TicketSessionView getSession(Long sessionId) {
         Seckill session = requireSession(sessionId);
+        return toView(session);
+    }
+
+    public List<TicketSessionView> listSessions() {
+        return seckillMapper.selectList(null).stream()
+                .sorted(Comparator.comparing(Seckill::getSeckillId).reversed())
+                .map(this::toView)
+                .toList();
+    }
+
+    private TicketSessionView toView(Seckill session) {
+        Long sessionId = session.getSeckillId();
         String cachedStock = redisTemplate.opsForValue().get(stockKey(sessionId));
-        return new TicketSessionView(session.getSeckillId(), session.getName(), session.getNumber(),
-                cachedStock == null ? null : Long.valueOf(cachedStock), session.getPrice(),
+        return new TicketSessionView(sessionId, session.getName(), session.getNumber(),
+                cachedStock == null ? session.getNumber().longValue() : Long.valueOf(cachedStock), session.getPrice(),
                 session.getStartTime(), session.getEndTime(), session.getStatus());
     }
 

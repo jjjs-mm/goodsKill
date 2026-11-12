@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -112,6 +113,21 @@ class TicketInventoryServiceTest {
                 1000L, "user-1", new TicketReservationRequest("13800138000", 1)));
 
         verify(redisTemplate).execute(any(RedisScript.class), anyList(), any(), any(), any());
+    }
+
+    @Test
+    void listsNewestSessionsFirstAndFallsBackToConfiguredStock() {
+        Seckill older = activeSession().setSeckillId(1000L).setNumber(10);
+        Seckill newer = activeSession().setSeckillId(1001L).setNumber(20);
+        when(seckillMapper.selectList(null)).thenReturn(List.of(older, newer));
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("ticket:session:1001:stock")).thenReturn("18");
+
+        List<TicketSessionView> sessions = inventoryService.listSessions();
+
+        assertEquals(List.of(1001L, 1000L), sessions.stream().map(TicketSessionView::sessionId).toList());
+        assertEquals(18L, sessions.getFirst().availableStock());
+        assertEquals(10L, sessions.getLast().availableStock());
     }
 
     private Seckill activeSession() {

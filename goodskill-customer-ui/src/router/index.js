@@ -4,6 +4,21 @@ import LoginView from '../views/LoginView.vue'
 const routes = [
   {
     path: '/',
+    name: 'ticketSessions',
+    component: () => import('../views/TicketSessionsView.vue')
+  },
+  {
+    path: '/tickets/:id',
+    name: 'ticketReservation',
+    component: () => import('../views/TicketReservationView.vue')
+  },
+  {
+    path: '/orders',
+    name: 'ticketOrders',
+    component: () => import('../views/TicketOrdersView.vue')
+  },
+  {
+    path: '/mall',
     name: 'home',
     component: () => import('../views/HomeView.vue')
   },
@@ -18,7 +33,7 @@ const routes = [
     component: () => import('../views/GoodsDetailView.vue')
   },
   {
-    path: '/orders',
+    path: '/legacy-orders',
     name: 'orders',
     component: () => import('../views/OrdersView.vue')
   },
@@ -42,7 +57,8 @@ const router = createRouter({
 // 路由守卫，检查登录状态
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
-  if (to.name !== 'login' && !token) {
+  const publicPages = ['ticketSessions', 'ticketReservation', 'ticketOrders', 'login']
+  if (!publicPages.includes(to.name) && !token) {
     next({ name: 'login' })
   } else {
     next()

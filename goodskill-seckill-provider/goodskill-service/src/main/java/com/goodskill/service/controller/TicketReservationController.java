@@ -17,12 +17,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/ticket-sessions")
 @RequiredArgsConstructor
 public class TicketReservationController {
 
     private final TicketInventoryService inventoryService;
+
+    @GetMapping
+    public List<TicketSessionView> listSessions() {
+        return inventoryService.listSessions();
+    }
 
     @GetMapping("/{sessionId}")
     public TicketSessionView getSession(@PathVariable Long sessionId) {

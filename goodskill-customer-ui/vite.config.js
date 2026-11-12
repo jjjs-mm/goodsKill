@@ -16,6 +16,16 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5174,
     proxy: {
+      '/ticket-api': {
+        target: 'http://127.0.0.1:54870',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/ticket-api/, '')
+      },
+      '/order-api': {
+        target: 'http://127.0.0.1:19081',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/order-api/, '')
+      },
       '/api': {
         target: 'http://localhost',
         changeOrigin: true,
